@@ -62,6 +62,7 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
     private TextView mClientCertificateLabelView;
     private TextView mPasswordLabelView;
     private EditText mServerView;
+    private EditText mBtRelayMacView;
     private EditText mPortView;
     private String mCurrentPortViewSetting;
     private CheckBox mRequireLoginView;
@@ -125,6 +126,7 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
         mClientCertificateLabelView = findViewById(R.id.account_client_certificate_label);
         mPasswordLabelView = findViewById(R.id.account_password_label);
         mServerView = findViewById(R.id.account_server);
+        mBtRelayMacView = findViewById(R.id.account_bt_relay_mac);
         mPortView = findViewById(R.id.account_port);
         mRequireLoginView = findViewById(R.id.account_require_login);
         mRequireLoginSettingsView = findViewById(R.id.account_require_login_settings);
@@ -205,6 +207,10 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
 
             if (settings.host != null) {
                 mServerView.setText(settings.host);
+            }
+
+            if (settings.btRelayMac != null) {
+                mBtRelayMacView.setText(settings.btRelayMac);
             }
 
             if (settings.port != -1) {
@@ -313,6 +319,7 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
         mUsernameView.addTextChangedListener(validationTextWatcher);
         mPasswordView.addTextChangedListener(validationTextWatcher);
         mServerView.addTextChangedListener(validationTextWatcher);
+        mBtRelayMacView.addTextChangedListener(validationTextWatcher);
         mPortView.addTextChangedListener(validationTextWatcher);
     }
 
@@ -489,8 +496,9 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
         }
 
         String newHost = mServerView.getText().toString();
+        String newBtRelayMac = mBtRelayMacView.getText().toString();
         int newPort = Integer.parseInt(mPortView.getText().toString());
-        ServerSettings server = new ServerSettings(Protocols.SMTP, newHost, newPort, securityType, authType, username, password, clientCertificateAlias);
+        ServerSettings server = new ServerSettings(Protocols.SMTP, newHost, newBtRelayMac, newPort, securityType, authType, username, password, clientCertificateAlias);
         uri = backendManager.createTransportUri(server);
         DI.get(LocalKeyStoreManager.class).deleteCertificate(mAccount, newHost, newPort, MailServerDirection.OUTGOING);
         mAccount.setTransportUri(uri);

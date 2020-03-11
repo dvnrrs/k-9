@@ -324,9 +324,9 @@ public class AccountSetupBasics extends K9Activity
 
         // set default uris
         // NOTE: they will be changed again in AccountSetupAccountType!
-        ServerSettings storeServer = new ServerSettings(Protocols.IMAP, "mail." + domain, -1,
+        ServerSettings storeServer = new ServerSettings(Protocols.IMAP, "mail." + domain, null, -1,
                 ConnectionSecurity.SSL_TLS_REQUIRED, authenticationType, email, password, clientCertificateAlias);
-        ServerSettings transportServer = new ServerSettings(Protocols.SMTP, "mail." + domain, -1,
+        ServerSettings transportServer = new ServerSettings(Protocols.SMTP, "mail." + domain, null, -1,
                 ConnectionSecurity.SSL_TLS_REQUIRED, authenticationType, email, password, clientCertificateAlias);
         String storeUri = backendManager.createStoreUri(storeServer);
         String transportUri = backendManager.createTransportUri(transportServer);

@@ -58,6 +58,7 @@ public class SettingsExporter {
     static final String OUTGOING_SERVER_ELEMENT = "outgoing-server";
     static final String TYPE_ATTRIBUTE = "type";
     static final String HOST_ELEMENT = "host";
+    static final String BT_RELAY_MAC_ELEMENT = "bt-relay-mac";
     static final String PORT_ELEMENT = "port";
     static final String CONNECTION_SECURITY_ELEMENT = "connection-security";
     static final String AUTHENTICATION_TYPE_ELEMENT = "authentication-type";
@@ -212,6 +213,7 @@ public class SettingsExporter {
         serializer.attribute(null, TYPE_ATTRIBUTE, ServerTypeConverter.fromServerSettingsType(incoming.type));
 
         writeElement(serializer, HOST_ELEMENT, incoming.host);
+        writeElement(serializer, BT_RELAY_MAC_ELEMENT, incoming.btRelayMac);
         if (incoming.port != -1) {
             writeElement(serializer, PORT_ELEMENT, Integer.toString(incoming.port));
         }
@@ -244,6 +246,7 @@ public class SettingsExporter {
         serializer.attribute(null, TYPE_ATTRIBUTE, ServerTypeConverter.fromServerSettingsType(outgoing.type));
 
         writeElement(serializer, HOST_ELEMENT, outgoing.host);
+        writeElement(serializer, BT_RELAY_MAC_ELEMENT, outgoing.btRelayMac);
         if (outgoing.port != -1) {
             writeElement(serializer, PORT_ELEMENT, Integer.toString(outgoing.port));
         }

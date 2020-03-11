@@ -43,7 +43,7 @@ class JmapBackendFactory(
             "accountId" to accountId
         )
 
-        return ServerSettings("jmap", baseUrl, 433, ConnectionSecurity.SSL_TLS_REQUIRED, AuthType.PLAIN, username, password, null, extra)
+        return ServerSettings("jmap", baseUrl, null, 433, ConnectionSecurity.SSL_TLS_REQUIRED, AuthType.PLAIN, username, password, null, extra)
     }
 
     override fun createStoreUri(serverSettings: ServerSettings): String {

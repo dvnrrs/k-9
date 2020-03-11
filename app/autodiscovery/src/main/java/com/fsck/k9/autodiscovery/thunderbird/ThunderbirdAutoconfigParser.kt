@@ -78,7 +78,7 @@ class ThunderbirdAutoconfigParser {
             eventType = xpp.next()
         }
 
-        return ServerSettings(type, host, port!!, connectionSecurity, authType, username, null, null)
+        return ServerSettings(type, host, null, port!!, connectionSecurity, authType, username, null, null)
     }
 
     private fun parseAuthType(authentication: String): AuthType? {

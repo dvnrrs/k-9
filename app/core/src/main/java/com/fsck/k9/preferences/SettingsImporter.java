@@ -79,18 +79,22 @@ public class SettingsImporter {
         public final boolean incomingPasswordNeeded;
         public final boolean outgoingPasswordNeeded;
         public final String incomingServerName;
+        public final String incomingBtRelayMac;
         public final String outgoingServerName;
+        public final String outgoingBtRelayMac;
 
         private AccountDescriptionPair(AccountDescription original, AccountDescription imported,
                 boolean overwritten, boolean incomingPasswordNeeded, boolean outgoingPasswordNeeded,
-                String incomingServerName, String outgoingServerName) {
+                String incomingServerName, String incomingBtRelayMac, String outgoingServerName, String outgoingBtRelayMac) {
             this.original = original;
             this.imported = imported;
             this.overwritten = overwritten;
             this.incomingPasswordNeeded = incomingPasswordNeeded;
             this.outgoingPasswordNeeded = outgoingPasswordNeeded;
             this.incomingServerName = incomingServerName;
+            this.incomingBtRelayMac = incomingBtRelayMac;
             this.outgoingServerName = outgoingServerName;
+            this.outgoingBtRelayMac = outgoingBtRelayMac;
         }
     }
 
@@ -375,6 +379,7 @@ public class SettingsImporter {
         putString(editor, accountKeyPrefix + AccountPreferenceSerializer.STORE_URI_KEY, Base64.encode(storeUri));
 
         String incomingServerName = incoming.host;
+        String incomingBtRelayMac = incoming.btRelayMac;
         boolean incomingPasswordNeeded = AuthType.EXTERNAL != incoming.authenticationType &&
                 (incoming.password == null || incoming.password.isEmpty());
 
@@ -385,6 +390,7 @@ public class SettingsImporter {
         }
 
         String outgoingServerName = null;
+        String outgoingBtRelayMac = null;
         boolean outgoingPasswordNeeded = false;
         if (account.outgoing != null) {
             // Write outgoing server settings (transportUri)
@@ -405,6 +411,7 @@ public class SettingsImporter {
                     (outgoing.password == null || outgoing.password.isEmpty());
 
             outgoingServerName = outgoing.host;
+            outgoingBtRelayMac = outgoing.btRelayMac;
         }
 
         boolean createAccountDisabled = incomingPasswordNeeded || outgoingPasswordNeeded;
@@ -465,7 +472,7 @@ public class SettingsImporter {
 
         AccountDescription imported = new AccountDescription(accountName, uuid);
         return new AccountDescriptionPair(original, imported, mergeImportedAccount,
-                incomingPasswordNeeded, outgoingPasswordNeeded, incomingServerName, outgoingServerName);
+                incomingPasswordNeeded, outgoingPasswordNeeded, incomingServerName, incomingBtRelayMac, outgoingServerName, outgoingBtRelayMac);
     }
 
     private static void importFolder(StorageEditor editor, int contentVersion, String uuid, ImportedFolder folder,
@@ -936,6 +943,8 @@ public class SettingsImporter {
                 String element = xpp.getName();
                 if (SettingsExporter.HOST_ELEMENT.equals(element)) {
                     server.host = getText(xpp);
+                } else if (SettingsExporter.BT_RELAY_MAC_ELEMENT.equals(element)) {
+                    server.btRelayMac = getText(xpp);
                 } else if (SettingsExporter.PORT_ELEMENT.equals(element)) {
                     server.port = getText(xpp);
                 } else if (SettingsExporter.CONNECTION_SECURITY_ELEMENT.equals(element)) {
@@ -1058,7 +1067,7 @@ public class SettingsImporter {
         private final ImportedServer importedServer;
 
         public ImportedServerSettings(ImportedServer server) {
-            super(ServerTypeConverter.toServerSettingsType(server.type), server.host, convertPort(server.port),
+            super(ServerTypeConverter.toServerSettingsType(server.type), server.host, server.btRelayMac, convertPort(server.port),
                     convertConnectionSecurity(server.connectionSecurity),
                     server.authenticationType, server.username, server.password,
                     server.clientCertificateAlias);
@@ -1124,6 +1133,7 @@ public class SettingsImporter {
     static class ImportedServer {
         public String type;
         public String host;
+        public String btRelayMac;
         public String port;
         public String connectionSecurity;
         public AuthType authenticationType;

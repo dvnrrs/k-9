@@ -5,6 +5,7 @@ package com.fsck.k9.mail.transport.smtp;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -21,7 +22,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
+import java.util.UUID;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.text.TextUtils;
 
 import com.fsck.k9.mail.Address;
@@ -70,7 +75,8 @@ public class SmtpTransport extends Transport {
 
 
     private Socket socket;
-    private PeekableInputStream inputStream;
+    private BluetoothSocket btSocket;
+    private InputStream inputStream;
     private OutputStream outputStream;
     private boolean is8bitEncodingAllowed;
     private boolean isEnhancedStatusCodesProvided;
@@ -103,33 +109,45 @@ public class SmtpTransport extends Transport {
     public void open() throws MessagingException {
         try {
             boolean secureConnection = false;
-            InetAddress[] addresses = InetAddress.getAllByName(host);
-            for (int i = 0; i < addresses.length; i++) {
-                try {
-                    SocketAddress socketAddress = new InetSocketAddress(addresses[i], port);
-                    if (connectionSecurity == ConnectionSecurity.SSL_TLS_REQUIRED) {
-                        socket = trustedSocketFactory.createSocket(null, host, port, clientCertificateAlias);
-                        socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
-                        secureConnection = true;
-                    } else {
-                        socket = new Socket();
-                        socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
+            if (true) {
+                UUID sppUuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                BluetoothDevice device = adapter.getRemoteDevice("B8:27:EB:B2:51:7F");
+                btSocket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket",
+                        new Class[] { int.class }).invoke(device,1);
+                btSocket.connect();
+                inputStream = new BufferedInputStream(btSocket.getInputStream(), 1024);
+                outputStream = new BufferedOutputStream(btSocket.getOutputStream(), 1024);
+                SOCKS5.request(inputStream, outputStream, host, port);
+            } else {
+                InetAddress[] addresses = InetAddress.getAllByName(host);
+                for (int i = 0; i < addresses.length; i++) {
+                    try {
+                        SocketAddress socketAddress = new InetSocketAddress(addresses[i], port);
+                        if (connectionSecurity == ConnectionSecurity.SSL_TLS_REQUIRED) {
+                            socket = trustedSocketFactory.createSocket(null, host, port, clientCertificateAlias);
+                            socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
+                            secureConnection = true;
+                        } else {
+                            socket = new Socket();
+                            socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
+                        }
+                    } catch (SocketException e) {
+                        if (i < (addresses.length - 1)) {
+                            // there are still other addresses for that host to try
+                            continue;
+                        }
+                        throw new MessagingException("Cannot connect to host", e);
                     }
-                } catch (SocketException e) {
-                    if (i < (addresses.length - 1)) {
-                        // there are still other addresses for that host to try
-                        continue;
-                    }
-                    throw new MessagingException("Cannot connect to host", e);
+                    break; // connection success
                 }
-                break; // connection success
+
+                // RFC 1047
+                socket.setSoTimeout(SOCKET_READ_TIMEOUT);
+
+                inputStream = new BufferedInputStream(socket.getInputStream(), 1024);
+                outputStream = new BufferedOutputStream(socket.getOutputStream(), 1024);
             }
-
-            // RFC 1047
-            socket.setSoTimeout(SOCKET_READ_TIMEOUT);
-
-            inputStream = new PeekableInputStream(new BufferedInputStream(socket.getInputStream(), 1024));
-            outputStream = new BufferedOutputStream(socket.getOutputStream(), 1024);
 
             // Eat the banner
             executeCommand(null);
@@ -142,7 +160,7 @@ public class SmtpTransport extends Transport {
             isEnhancedStatusCodesProvided = extensions.containsKey("ENHANCEDSTATUSCODES");
             isPipeliningSupported = extensions.containsKey("PIPELINING");
 
-            if (connectionSecurity == ConnectionSecurity.STARTTLS_REQUIRED) {
+            if (connectionSecurity == ConnectionSecurity.STARTTLS_REQUIRED && btSocket == null) {
                 if (extensions.containsKey("STARTTLS")) {
                     executeCommand("STARTTLS");
 
@@ -152,8 +170,7 @@ public class SmtpTransport extends Transport {
                             port,
                             clientCertificateAlias);
 
-                    inputStream = new PeekableInputStream(new BufferedInputStream(socket.getInputStream(),
-                            1024));
+                    inputStream = new BufferedInputStream(socket.getInputStream(), 1024);
                     outputStream = new BufferedOutputStream(socket.getOutputStream(), 1024);
                     /*
                      * Now resend the EHLO. Required by RFC2487 Sec. 5.2, and more specifically,
@@ -294,20 +311,24 @@ public class SmtpTransport extends Transport {
             close();
             throw new MessagingException(
                 "Unable to open connection to SMTP server due to security error.", gse);
-        } catch (IOException ioe) {
+        } catch (Exception e) {
             close();
-            throw new MessagingException("Unable to open connection to SMTP server.", ioe);
+            throw new MessagingException("Unable to open connection to SMTP server.", e);
         }
     }
 
     private String buildHostnameToReport() {
-        InetAddress localAddress = socket.getLocalAddress();
-
-        // we use local ip statically for privacy reasons, see https://github.com/k9mail/k-9/pull/3798
-        if (localAddress instanceof Inet6Address) {
-            return "[IPv6:::1]";
-        } else {
+        if (btSocket != null) {
             return "[127.0.0.1]";
+        } else {
+            InetAddress localAddress = socket.getLocalAddress();
+
+            // we use local ip statically for privacy reasons, see https://github.com/k9mail/k-9/pull/3798
+            if (localAddress instanceof Inet6Address) {
+                return "[IPv6:::1]";
+            } else {
+                return "[127.0.0.1]";
+            }
         }
     }
 
@@ -477,10 +498,18 @@ public class SmtpTransport extends Transport {
         }
         IOUtils.closeQuietly(inputStream);
         IOUtils.closeQuietly(outputStream);
-        IOUtils.closeQuietly(socket);
+        if (btSocket != null) {
+            try {
+                btSocket.close();
+            } catch (IOException e) {
+            }
+        } else {
+            IOUtils.closeQuietly(socket);
+        }
         inputStream = null;
         outputStream = null;
         socket = null;
+        btSocket = null;
     }
 
     private String readLine() throws IOException {

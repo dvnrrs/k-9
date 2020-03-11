@@ -96,7 +96,7 @@ public class SmtpTransportUriDecoder {
             }
         }
 
-        return new ServerSettings("smtp", host, port, connectionSecurity,
+        return new ServerSettings("smtp", host, null, port, connectionSecurity,
                 authType, username, password, clientCertificateAlias);
     }
 

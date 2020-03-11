@@ -37,6 +37,22 @@
                     android:layout_width="fill_parent"/>
 
             <TextView
+                android:id="@+id/account_bt_relay_mac_label"
+                android:text="Bluetooth Relay MAC"
+                android:layout_height="wrap_content"
+                android:layout_width="fill_parent"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="?android:attr/textColorPrimary"
+                android:contentDescription="Bluetooth Relay MAC"/>
+
+            <EditText
+                android:id="@+id/account_bt_relay_mac"
+                android:singleLine="true"
+                android:inputType="textUri"
+                android:layout_height="wrap_content"
+                android:layout_width="fill_parent"/>
+
+            <TextView
                     android:text="@string/account_setup_incoming_security_label"
                     android:layout_height="wrap_content"
                     android:layout_width="fill_parent"

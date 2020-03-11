@@ -21,11 +21,11 @@ public class ImapStoreSettings extends ServerSettings {
     public final String pathPrefix;
 
 
-    public ImapStoreSettings(String host, int port, ConnectionSecurity connectionSecurity,
+    public ImapStoreSettings(String host, String btRelayMac, int port, ConnectionSecurity connectionSecurity,
             AuthType authenticationType, String username, String password, String clientCertificateAlias,
             boolean autodetectNamespace, String pathPrefix) {
 
-        super("imap", host, port, connectionSecurity, authenticationType, username,
+        super("imap", host, btRelayMac, port, connectionSecurity, authenticationType, username,
                 password, clientCertificateAlias);
 
         this.autoDetectNamespace = autodetectNamespace;
@@ -44,7 +44,7 @@ public class ImapStoreSettings extends ServerSettings {
 
     @Override
     public ServerSettings newPassword(String newPassword) {
-        return new ImapStoreSettings(host, port, connectionSecurity, authenticationType,
+        return new ImapStoreSettings(host, btRelayMac, port, connectionSecurity, authenticationType,
                 username, newPassword, clientCertificateAlias, autoDetectNamespace, pathPrefix);
     }
 }

@@ -22,6 +22,14 @@ public class ServerSettings {
     public final String host;
 
     /**
+     * The Bluetooth MAC address (6 bytes) of the Bluetooth device
+     * to be used as an SPP/RFCOMM relay.
+     *
+     * {@code null} if not applicable for the store or transport.
+     */
+    public final String btRelayMac;
+
+    /**
      * The port number of the server.
      *
      * {@code -1} if not applicable for the store or transport.
@@ -79,6 +87,8 @@ public class ServerSettings {
      *         see {@link ServerSettings#type}
      * @param host
      *         see {@link ServerSettings#host}
+     * @param btRelayMac
+     *         see {@link ServerSettings#btRelayMac}
      * @param port
      *         see {@link ServerSettings#port}
      * @param connectionSecurity
@@ -92,11 +102,12 @@ public class ServerSettings {
      * @param clientCertificateAlias
      *         see {@link ServerSettings#clientCertificateAlias}
      */
-    public ServerSettings(String type, String host, int port,
+    public ServerSettings(String type, String host, String btRelayMac, int port,
             ConnectionSecurity connectionSecurity, AuthType authenticationType, String username,
             String password, String clientCertificateAlias) {
         this.type = checkType(type);
         this.host = host;
+        this.btRelayMac = btRelayMac;
         this.port = port;
         this.connectionSecurity = connectionSecurity;
         this.authenticationType = authenticationType;
@@ -113,6 +124,8 @@ public class ServerSettings {
      *         see {@link ServerSettings#type}
      * @param host
      *         see {@link ServerSettings#host}
+     * @param btRelayMac
+     *         see {@link ServerSettings#btRelayMac}
      * @param port
      *         see {@link ServerSettings#port}
      * @param connectionSecurity
@@ -128,11 +141,12 @@ public class ServerSettings {
      * @param extra
      *         see {@link ServerSettings#extra}
      */
-    public ServerSettings(String type, String host, int port,
+    public ServerSettings(String type, String host, String btRelayMac, int port,
             ConnectionSecurity connectionSecurity, AuthType authenticationType, String username,
             String password, String clientCertificateAlias, Map<String, String> extra) {
         this.type = checkType(type);
         this.host = host;
+        this.btRelayMac = btRelayMac;
         this.port = port;
         this.connectionSecurity = connectionSecurity;
         this.authenticationType = authenticationType;
@@ -153,6 +167,7 @@ public class ServerSettings {
     public ServerSettings(String type) {
         this.type = checkType(type);
         host = null;
+        btRelayMac = null;
         port = -1;
         connectionSecurity = ConnectionSecurity.NONE;
         authenticationType = null;
@@ -178,12 +193,12 @@ public class ServerSettings {
     }
 
     public ServerSettings newPassword(String newPassword) {
-        return new ServerSettings(type, host, port, connectionSecurity, authenticationType,
+        return new ServerSettings(type, host, btRelayMac, port, connectionSecurity, authenticationType,
                 username, newPassword, clientCertificateAlias);
     }
 
     public ServerSettings newClientCertificateAlias(String newAlias) {
-        return new ServerSettings(type, host, port, connectionSecurity, AuthType.EXTERNAL,
+        return new ServerSettings(type, host, btRelayMac, port, connectionSecurity, AuthType.EXTERNAL,
                 username, password, newAlias);
     }
 
@@ -210,6 +225,7 @@ public class ServerSettings {
                 connectionSecurity == that.connectionSecurity &&
                 authenticationType == that.authenticationType &&
                 (host == null ? that.host == null : host.equals(that.host)) &&
+                (btRelayMac == null ? that.btRelayMac == null : btRelayMac.equals(that.btRelayMac)) &&
                 (username == null ? that.username == null : username.equals(that.username)) &&
                 (password == null ? that.password == null : password.equals(that.password)) &&
                 (clientCertificateAlias == null ? that.clientCertificateAlias == null :

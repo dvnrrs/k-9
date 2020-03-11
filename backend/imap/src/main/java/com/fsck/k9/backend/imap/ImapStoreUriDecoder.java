@@ -135,7 +135,7 @@ public class ImapStoreUriDecoder {
             }
         }
 
-        return new ImapStoreSettings(host, port, connectionSecurity, authenticationType, username,
+        return new ImapStoreSettings(host, null, port, connectionSecurity, authenticationType, username,
                 password, clientCertificateAlias, autoDetectNamespace, pathPrefix);
     }
 }
