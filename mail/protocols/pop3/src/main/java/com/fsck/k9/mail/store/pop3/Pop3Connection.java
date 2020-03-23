@@ -1,6 +1,10 @@
 package com.fsck.k9.mail.store.pop3;
 
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -16,6 +20,7 @@ import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import com.fsck.k9.mail.AuthType;
 import com.fsck.k9.mail.Authentication;
@@ -42,6 +47,7 @@ class Pop3Connection {
     private final Pop3Settings settings;
     private final TrustedSocketFactory trustedSocketFactory;
     private Socket socket;
+    private BluetoothSocket btSocket;
     private BufferedInputStream in;
     private BufferedOutputStream out;
     private Pop3Capabilities capabilities;
@@ -61,19 +67,31 @@ class Pop3Connection {
 
     void open() throws MessagingException {
         try {
-            SocketAddress socketAddress = new InetSocketAddress(settings.getHost(), settings.getPort());
-            if (settings.getConnectionSecurity() == ConnectionSecurity.SSL_TLS_REQUIRED) {
-                socket = trustedSocketFactory.createSocket(null, settings.getHost(),
-                        settings.getPort(), settings.getClientCertificateAlias());
+            if (true) {
+                UUID sppUuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                BluetoothDevice device = adapter.getRemoteDevice("B8:27:EB:B2:51:7F");
+                btSocket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket",
+                        new Class[] { int.class }).invoke(device,1);
+                btSocket.connect();
+                in = new BufferedInputStream(btSocket.getInputStream(), 1024);
+                out = new BufferedOutputStream(btSocket.getOutputStream(), 1024);
+                SOCKS5.request(in, out, settings.getHost(), settings.getPort());
             } else {
-                socket = new Socket();
+                SocketAddress socketAddress = new InetSocketAddress(settings.getHost(), settings.getPort());
+                if (settings.getConnectionSecurity() == ConnectionSecurity.SSL_TLS_REQUIRED) {
+                    socket = trustedSocketFactory.createSocket(null, settings.getHost(),
+                            settings.getPort(), settings.getClientCertificateAlias());
+                } else {
+                    socket = new Socket();
+                }
+
+                socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
+                in = new BufferedInputStream(socket.getInputStream(), 1024);
+                out = new BufferedOutputStream(socket.getOutputStream(), 512);
+
+                socket.setSoTimeout(SOCKET_READ_TIMEOUT);
             }
-
-            socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
-            in = new BufferedInputStream(socket.getInputStream(), 1024);
-            out = new BufferedOutputStream(socket.getOutputStream(), 512);
-
-            socket.setSoTimeout(SOCKET_READ_TIMEOUT);
 
             if (!isOpen()) {
                 throw new MessagingException("Unable to connect socket");
@@ -97,8 +115,8 @@ class Pop3Connection {
         } catch (GeneralSecurityException gse) {
             throw new MessagingException(
                     "Unable to open connection to POP server due to security error.", gse);
-        } catch (IOException ioe) {
-            throw new MessagingException("Unable to open connection to POP server.", ioe);
+        } catch (Exception e) {
+            throw new MessagingException("Unable to open connection to POP server.", e);
         }
     }
 
@@ -169,8 +187,9 @@ class Pop3Connection {
     }
 
     boolean isOpen() {
-        return (in != null && out != null && socket != null
-                && socket.isConnected() && !socket.isClosed());
+        return in != null && out != null &&
+                ((socket != null && socket.isConnected() && !socket.isClosed()) ||
+                (btSocket != null && btSocket.isConnected()));
     }
 
     private Pop3Capabilities getCapabilities() throws IOException {
@@ -413,9 +432,17 @@ class Pop3Connection {
              * May fail if the connection is already closed.
              */
         }
+        try {
+            btSocket.close();
+        } catch (Exception e) {
+            /*
+             * May fail if the connection is already closed.
+             */
+        }
         in = null;
         out = null;
         socket = null;
+        btSocket = null;
     }
 
     boolean supportsTop() {
