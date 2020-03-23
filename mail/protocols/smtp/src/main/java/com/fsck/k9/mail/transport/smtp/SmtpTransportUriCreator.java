@@ -54,8 +54,15 @@ public class SmtpTransportUriCreator {
         } else {
             userInfo = userEnc + ":" + passwordEnc;
         }
+
+        String path = null;
+        if (server.btRelayMac != null) {
+            scheme += (scheme.endsWith("+") ? "" : "+") + "bt";
+            path = "/" + server.btRelayMac;
+        }
+
         try {
-            return new URI(scheme, userInfo, server.host, server.port, null, null,
+            return new URI(scheme, userInfo, server.host, server.port, path, null,
                     null).toString();
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Can't create SmtpTransport URI", e);

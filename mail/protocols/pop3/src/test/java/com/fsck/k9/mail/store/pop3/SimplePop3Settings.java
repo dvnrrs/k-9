@@ -5,6 +5,7 @@ import com.fsck.k9.mail.ConnectionSecurity;
 
 class SimplePop3Settings implements Pop3Settings {
     private String host;
+    private String btRelayMac;
     private int port;
     private ConnectionSecurity connectionSecurity = ConnectionSecurity.NONE;
     private AuthType authType;
@@ -15,6 +16,9 @@ class SimplePop3Settings implements Pop3Settings {
     public String getHost() {
         return host;
     }
+
+    @Override
+    public String getBluetoothRelayMac() { return btRelayMac; }
 
     @Override
     public int getPort() {
@@ -48,6 +52,10 @@ class SimplePop3Settings implements Pop3Settings {
 
     void setHost(String host) {
         this.host = host;
+    }
+
+    void setBluetoothRelayMac(String btRelayMac) {
+        this.btRelayMac = btRelayMac;
     }
 
     void setPort(int port) {

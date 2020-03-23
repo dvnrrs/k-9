@@ -8,6 +8,8 @@ import com.fsck.k9.mail.ConnectionSecurity;
 interface Pop3Settings {
     String getHost();
 
+    String getBluetoothRelayMac();
+
     int getPort();
 
     ConnectionSecurity getConnectionSecurity();

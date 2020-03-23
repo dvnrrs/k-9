@@ -19,6 +19,7 @@ dependencies {
     testImplementation "com.jcraft:jzlib:1.0.7"
     testImplementation "commons-io:commons-io:${versions.commonsIo}"
     implementation project(path: ':mail:protocols:socks')
+    implementation project(path: ':mail:protocols:bluetooth')
 }
 
 android {

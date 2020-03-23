@@ -19,6 +19,7 @@ dependencies {
     testImplementation "com.squareup.okio:okio:${versions.okio}"
     testImplementation "com.jcraft:jzlib:1.0.7"
     implementation project(path: ':mail:protocols:socks')
+    implementation project(path: ':mail:protocols:bluetooth')
 }
 
 android {

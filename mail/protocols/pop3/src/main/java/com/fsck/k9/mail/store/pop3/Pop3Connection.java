@@ -32,6 +32,7 @@ import com.fsck.k9.mail.K9MailLib;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.filter.Base64;
 import com.fsck.k9.mail.filter.Hex;
+import com.fsck.k9.mail.protocols.bluetooth.BluetoothTunnel;
 import com.fsck.k9.mail.protocols.socks.Socks5Client;
 import com.fsck.k9.mail.ssl.TrustedSocketFactory;
 import javax.net.ssl.SSLException;
@@ -69,13 +70,9 @@ class Pop3Connection {
 
     void open() throws MessagingException {
         try {
-            if (true) {
-                UUID sppUuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-                BluetoothDevice device = adapter.getRemoteDevice("B8:27:EB:B2:51:7F");
-                btSocket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket",
-                        new Class[] { int.class }).invoke(device,1);
-                btSocket.connect();
+            String btRelayMac = settings.getBluetoothRelayMac();
+            if (btRelayMac != null && btRelayMac.indexOf(':') != -1) {
+                btSocket = BluetoothTunnel.open(btRelayMac);
                 Socks5Client socks = new Socks5Client(
                         new BufferedInputStream(btSocket.getInputStream(), 1024),
                         new BufferedOutputStream(btSocket.getOutputStream(), 1024));

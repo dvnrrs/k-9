@@ -38,6 +38,7 @@ public class Pop3StoreUriDecoder {
         String username = null;
         String password = null;
         String clientCertificateAlias = null;
+        String btRelayMac = null;
 
         URI pop3Uri;
         try {
@@ -59,7 +60,7 @@ public class Pop3StoreUriDecoder {
          * pop3+tls
          * pop3+ssl
          */
-        if (scheme.equals("pop3")) {
+        if (scheme.equals("pop3") || scheme.equals("pop3+bt")) {
             connectionSecurity = ConnectionSecurity.NONE;
             port = DEFAULT_PORT;
         } else if (scheme.startsWith("pop3+tls")) {
@@ -70,6 +71,13 @@ public class Pop3StoreUriDecoder {
             port = DEFAULT_TLS_PORT;
         } else {
             throw new IllegalArgumentException("Unsupported protocol (" + scheme + ")");
+        }
+
+        if (scheme.endsWith("+bt")) {
+            btRelayMac = pop3Uri.getPath();
+            if (btRelayMac.charAt(0) == '/') {
+                btRelayMac = btRelayMac.substring(1);
+            }
         }
 
         host = pop3Uri.getHost();
@@ -100,7 +108,7 @@ public class Pop3StoreUriDecoder {
             }
         }
 
-        return new ServerSettings("pop3", host, null, port, connectionSecurity, authType, username,
+        return new ServerSettings("pop3", host, btRelayMac, port, connectionSecurity, authType, username,
                 password, clientCertificateAlias);
     }
 }

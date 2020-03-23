@@ -18,6 +18,7 @@ public class Pop3Store {
     private final StoreConfig storeConfig;
     private final TrustedSocketFactory trustedSocketFactory;
     private final String host;
+    private final String btRelayMac;
     private final int port;
     private final String username;
     private final String password;
@@ -31,6 +32,7 @@ public class Pop3Store {
         this.storeConfig = storeConfig;
         trustedSocketFactory = socketFactory;
         host = serverSettings.host;
+        btRelayMac = serverSettings.btRelayMac;
         port = serverSettings.port;
         connectionSecurity = serverSettings.connectionSecurity;
         username = serverSettings.username;
@@ -72,6 +74,11 @@ public class Pop3Store {
         @Override
         public String getHost() {
             return host;
+        }
+
+        @Override
+        public String getBluetoothRelayMac() {
+            return btRelayMac;
         }
 
         @Override

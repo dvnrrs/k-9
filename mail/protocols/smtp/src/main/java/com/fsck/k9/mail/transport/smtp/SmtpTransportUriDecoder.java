@@ -35,6 +35,7 @@ public class SmtpTransportUriDecoder {
         String username = null;
         String password = null;
         String clientCertificateAlias = null;
+        String btRelayMac = null;
 
         URI smtpUri;
         try {
@@ -56,7 +57,7 @@ public class SmtpTransportUriDecoder {
          * smtp+tls
          * smtp+ssl
          */
-        if (scheme.equals("smtp")) {
+        if (scheme.equals("smtp") || scheme.equals("smtp+bt")) {
             connectionSecurity = ConnectionSecurity.NONE;
             port = DEFAULT_PORT;
         } else if (scheme.startsWith("smtp+tls")) {
@@ -67,6 +68,13 @@ public class SmtpTransportUriDecoder {
             port = DEFAULT_TLS_PORT;
         } else {
             throw new IllegalArgumentException("Unsupported protocol (" + scheme + ")");
+        }
+
+        if (scheme.endsWith("+bt")) {
+            btRelayMac = smtpUri.getPath();
+            if (btRelayMac.charAt(0) == '/') {
+                btRelayMac = btRelayMac.substring(1);
+            }
         }
 
         host = smtpUri.getHost();
@@ -96,7 +104,7 @@ public class SmtpTransportUriDecoder {
             }
         }
 
-        return new ServerSettings("smtp", host, null, port, connectionSecurity,
+        return new ServerSettings("smtp", host, btRelayMac, port, connectionSecurity,
                 authType, username, password, clientCertificateAlias);
     }
 

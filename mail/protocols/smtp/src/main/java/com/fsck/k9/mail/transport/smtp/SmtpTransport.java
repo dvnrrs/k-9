@@ -49,6 +49,7 @@ import com.fsck.k9.mail.filter.SmtpDataStuffing;
 import com.fsck.k9.mail.internet.CharsetSupport;
 import com.fsck.k9.mail.oauth.OAuth2TokenProvider;
 import com.fsck.k9.mail.oauth.XOAuth2ChallengeParser;
+import com.fsck.k9.mail.protocols.bluetooth.BluetoothTunnel;
 import com.fsck.k9.mail.protocols.socks.Socks5Client;
 import com.fsck.k9.mail.ssl.TrustedSocketFactory;
 import javax.net.ssl.SSLException;
@@ -68,6 +69,7 @@ public class SmtpTransport extends Transport {
 
     private final String host;
     private final int port;
+    private final String btRelayMac;
     private final String username;
     private final String password;
     private final String clientCertificateAlias;
@@ -94,6 +96,7 @@ public class SmtpTransport extends Transport {
 
         host = serverSettings.host;
         port = serverSettings.port;
+        btRelayMac = serverSettings.btRelayMac;
 
         connectionSecurity = serverSettings.connectionSecurity;
 
@@ -110,13 +113,8 @@ public class SmtpTransport extends Transport {
     public void open() throws MessagingException {
         try {
             boolean secureConnection = false;
-            if (true) {
-                UUID sppUuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-                BluetoothDevice device = adapter.getRemoteDevice("B8:27:EB:B2:51:7F");
-                btSocket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket",
-                        new Class[] { int.class }).invoke(device,1);
-                btSocket.connect();
+            if (btRelayMac != null && btRelayMac.indexOf(':') != -1) {
+                btSocket = BluetoothTunnel.open(btRelayMac);
                 Socks5Client socks = new Socks5Client(
                         new BufferedInputStream(btSocket.getInputStream(), 1024),
                         new BufferedOutputStream(btSocket.getOutputStream(), 1024));

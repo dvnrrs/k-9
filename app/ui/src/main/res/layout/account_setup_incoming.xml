@@ -48,7 +48,7 @@
             <EditText
                 android:id="@+id/account_bt_relay_mac"
                 android:singleLine="true"
-                android:inputType="textUri"
+                android:inputType="text"
                 android:layout_height="wrap_content"
                 android:layout_width="fill_parent"/>
 
