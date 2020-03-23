@@ -49,6 +49,7 @@ import com.fsck.k9.mail.filter.SmtpDataStuffing;
 import com.fsck.k9.mail.internet.CharsetSupport;
 import com.fsck.k9.mail.oauth.OAuth2TokenProvider;
 import com.fsck.k9.mail.oauth.XOAuth2ChallengeParser;
+import com.fsck.k9.mail.protocols.socks.Socks5Client;
 import com.fsck.k9.mail.ssl.TrustedSocketFactory;
 import javax.net.ssl.SSLException;
 import org.apache.commons.io.IOUtils;
@@ -116,9 +117,13 @@ public class SmtpTransport extends Transport {
                 btSocket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket",
                         new Class[] { int.class }).invoke(device,1);
                 btSocket.connect();
-                inputStream = new BufferedInputStream(btSocket.getInputStream(), 1024);
-                outputStream = new BufferedOutputStream(btSocket.getOutputStream(), 1024);
-                SOCKS5.request(inputStream, outputStream, host, port);
+                Socks5Client socks = new Socks5Client(
+                        new BufferedInputStream(btSocket.getInputStream(), 1024),
+                        new BufferedOutputStream(btSocket.getOutputStream(), 1024));
+                socks.handshake();
+                socks.connect(host, port);
+                inputStream = socks.getInputStream();
+                outputStream = socks.getOutputStream();
             } else {
                 InetAddress[] addresses = InetAddress.getAllByName(host);
                 for (int i = 0; i < addresses.length; i++) {

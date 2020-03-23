@@ -9,6 +9,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -31,6 +32,7 @@ import com.fsck.k9.mail.K9MailLib;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.filter.Base64;
 import com.fsck.k9.mail.filter.Hex;
+import com.fsck.k9.mail.protocols.socks.Socks5Client;
 import com.fsck.k9.mail.ssl.TrustedSocketFactory;
 import javax.net.ssl.SSLException;
 import timber.log.Timber;
@@ -48,8 +50,8 @@ class Pop3Connection {
     private final TrustedSocketFactory trustedSocketFactory;
     private Socket socket;
     private BluetoothSocket btSocket;
-    private BufferedInputStream in;
-    private BufferedOutputStream out;
+    private InputStream in;
+    private OutputStream out;
     private Pop3Capabilities capabilities;
 
     /**
@@ -74,9 +76,13 @@ class Pop3Connection {
                 btSocket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket",
                         new Class[] { int.class }).invoke(device,1);
                 btSocket.connect();
-                in = new BufferedInputStream(btSocket.getInputStream(), 1024);
-                out = new BufferedOutputStream(btSocket.getOutputStream(), 1024);
-                SOCKS5.request(in, out, settings.getHost(), settings.getPort());
+                Socks5Client socks = new Socks5Client(
+                        new BufferedInputStream(btSocket.getInputStream(), 1024),
+                        new BufferedOutputStream(btSocket.getOutputStream(), 1024));
+                socks.handshake();
+                socks.connect(settings.getHost(), settings.getPort());
+                in = socks.getInputStream();
+                out = socks.getOutputStream();
             } else {
                 SocketAddress socketAddress = new InetSocketAddress(settings.getHost(), settings.getPort());
                 if (settings.getConnectionSecurity() == ConnectionSecurity.SSL_TLS_REQUIRED) {

@@ -18,6 +18,7 @@ dependencies {
     testImplementation "com.squareup.okio:okio:${versions.okio}"
     testImplementation "com.jcraft:jzlib:1.0.7"
     testImplementation "commons-io:commons-io:${versions.commonsIo}"
+    implementation project(path: ':mail:protocols:socks')
 }
 
 android {

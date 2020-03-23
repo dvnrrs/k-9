@@ -18,6 +18,7 @@ dependencies {
     testImplementation "org.mockito:mockito-core:${versions.mockito}"
     testImplementation "com.squareup.okio:okio:${versions.okio}"
     testImplementation "com.jcraft:jzlib:1.0.7"
+    implementation project(path: ':mail:protocols:socks')
 }
 
 android {
