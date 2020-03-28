@@ -45,12 +45,27 @@
                 android:textColor="?android:attr/textColorPrimary"
                 android:contentDescription="Bluetooth Relay MAC"/>
 
-            <EditText
-                android:id="@+id/account_bt_relay_mac"
-                android:singleLine="true"
-                android:inputType="text"
+            <LinearLayout
+                android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_width="fill_parent"/>
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/account_bt_relay_mac"
+                    android:singleLine="true"
+                    android:inputType="text"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_width="wrap_content"/>
+
+                <Button
+                    android:id="@+id/account_bt_relay_mac_button"
+                    android:layout_weight="0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Select"/>
+
+            </LinearLayout>
 
             <TextView
                     android:text="@string/account_setup_incoming_security_label"

@@ -28,6 +28,7 @@ import com.fsck.k9.DI;
 import com.fsck.k9.LocalKeyStoreManager;
 import com.fsck.k9.Preferences;
 import com.fsck.k9.account.AccountCreator;
+import com.fsck.k9.activity.ChooseBluetoothDeviceActivity;
 import com.fsck.k9.activity.K9Activity;
 import com.fsck.k9.activity.setup.AccountSetupCheckSettings.CheckDirection;
 import com.fsck.k9.backend.BackendManager;
@@ -72,6 +73,7 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
     private TextView mPasswordLabelView;
     private EditText mServerView;
     private EditText mBtRelayMacView;
+    private Button mBtRelayMacButton;
     private EditText mPortView;
     private String mCurrentPortViewSetting;
     private Spinner mSecurityTypeView;
@@ -132,6 +134,7 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
         TextView serverLabelView = findViewById(R.id.account_server_label);
         mServerView = findViewById(R.id.account_server);
         mBtRelayMacView = findViewById(R.id.account_bt_relay_mac);
+        mBtRelayMacButton = findViewById(R.id.account_bt_relay_mac_button);
         mPortView = findViewById(R.id.account_port);
         mSecurityTypeView = findViewById(R.id.account_security_type);
         mAuthTypeView = findViewById(R.id.account_auth_type);
@@ -159,6 +162,8 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
                 }
             }
         });
+
+        mBtRelayMacButton.setOnClickListener(this);
 
         mAuthTypeAdapter = AuthTypeAdapter.get(this);
         mAuthTypeView.setAdapter(mAuthTypeAdapter);
@@ -520,47 +525,54 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            if (Intent.ACTION_EDIT.equals(getIntent().getAction())) {
-                boolean isPushCapable = messagingController.isPushCapable(mAccount);
-                if (isPushCapable && mAccount.getFolderPushMode() != FolderMode.NONE) {
-                    jobManager.schedulePusherRefresh();
-                }
-                Preferences.getPreferences(getApplicationContext()).saveAccount(mAccount);
-                finish();
-            } else {
-                /*
-                 * Set the username and password for the outgoing settings to the username and
-                 * password the user just set for incoming.
-                 */
-                try {
-                    String username = mUsernameView.getText().toString();
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 2) {
+            if (resultCode == RESULT_OK) {
+                mBtRelayMacView.setText(data.getStringExtra("address"));
+            }
+        } else {
+            if (resultCode == RESULT_OK) {
+                if (Intent.ACTION_EDIT.equals(getIntent().getAction())) {
+                    boolean isPushCapable = messagingController.isPushCapable(mAccount);
+                    if (isPushCapable && mAccount.getFolderPushMode() != FolderMode.NONE) {
+                        jobManager.schedulePusherRefresh();
+                    }
+                    Preferences.getPreferences(getApplicationContext()).saveAccount(mAccount);
+                    finish();
+                } else {
+                    /*
+                     * Set the username and password for the outgoing settings to the username and
+                     * password the user just set for incoming.
+                     */
+                    try {
+                        String username = mUsernameView.getText().toString();
 
-                    String password = null;
-                    String clientCertificateAlias = null;
-                    AuthType authType = getSelectedAuthType();
-                    if (AuthType.EXTERNAL == authType) {
-                        clientCertificateAlias = mClientCertificateSpinner.getAlias();
-                    } else {
-                        password = mPasswordView.getText().toString();
+                        String password = null;
+                        String clientCertificateAlias = null;
+                        AuthType authType = getSelectedAuthType();
+                        if (AuthType.EXTERNAL == authType) {
+                            clientCertificateAlias = mClientCertificateSpinner.getAlias();
+                        } else {
+                            password = mPasswordView.getText().toString();
+                        }
+
+                        URI oldUri = new URI(mAccount.getTransportUri());
+                        ServerSettings transportServer = new ServerSettings(Protocols.SMTP, oldUri.getHost(), null,
+                                oldUri.getPort(), ConnectionSecurity.SSL_TLS_REQUIRED, authType, username, password,
+                                clientCertificateAlias);
+                        String transportUri = backendManager.createTransportUri(transportServer);
+                        mAccount.setTransportUri(transportUri);
+                    } catch (URISyntaxException use) {
+                        /*
+                         * If we can't set up the URL we just continue. It's only for
+                         * convenience.
+                         */
                     }
 
-                    URI oldUri = new URI(mAccount.getTransportUri());
-                    ServerSettings transportServer = new ServerSettings(Protocols.SMTP, oldUri.getHost(), null,
-                            oldUri.getPort(), ConnectionSecurity.SSL_TLS_REQUIRED, authType, username, password,
-                            clientCertificateAlias);
-                    String transportUri = backendManager.createTransportUri(transportServer);
-                    mAccount.setTransportUri(transportUri);
-                } catch (URISyntaxException use) {
-                    /*
-                     * If we can't set up the URL we just continue. It's only for
-                     * convenience.
-                     */
+
+                    AccountSetupOutgoing.actionOutgoingSettings(this, mAccount, mMakeDefault);
+                    finish();
                 }
-
-
-                AccountSetupOutgoing.actionOutgoingSettings(this, mAccount, mMakeDefault);
-                finish();
             }
         }
     }
@@ -622,6 +634,9 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
         try {
             if (v.getId() == R.id.next) {
                 onNext();
+            } else if (v.getId() == R.id.account_bt_relay_mac_button) {
+                Intent intent = new Intent(this, ChooseBluetoothDeviceActivity.class);
+                startActivityForResult(intent, 2);
             }
         } catch (Exception e) {
             failure(e);

@@ -129,6 +129,11 @@
             android:noHistory="true" />
 
         <activity
+            android:name=".activity.ChooseBluetoothDeviceActivity"
+            android:configChanges="locale"
+            android:label="Choose Bluetooth Device"/>
+
+        <activity
             android:name=".ui.choosefolder.ChooseFolderActivity"
             android:configChanges="locale"
             android:label="@string/choose_folder_title"

@@ -29,6 +29,7 @@ import com.fsck.k9.Account;
 import com.fsck.k9.DI;
 import com.fsck.k9.LocalKeyStoreManager;
 import com.fsck.k9.Preferences;
+import com.fsck.k9.activity.ChooseBluetoothDeviceActivity;
 import com.fsck.k9.backend.BackendManager;
 import com.fsck.k9.preferences.Protocols;
 import com.fsck.k9.ui.R;
@@ -63,6 +64,7 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
     private TextView mPasswordLabelView;
     private EditText mServerView;
     private EditText mBtRelayMacView;
+    private Button mBtRelayMacButton;
     private EditText mPortView;
     private String mCurrentPortViewSetting;
     private CheckBox mRequireLoginView;
@@ -127,6 +129,7 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
         mPasswordLabelView = findViewById(R.id.account_password_label);
         mServerView = findViewById(R.id.account_server);
         mBtRelayMacView = findViewById(R.id.account_bt_relay_mac);
+        mBtRelayMacButton = findViewById(R.id.account_bt_relay_mac_button);
         mPortView = findViewById(R.id.account_port);
         mRequireLoginView = findViewById(R.id.account_require_login);
         mRequireLoginSettingsView = findViewById(R.id.account_require_login_settings);
@@ -137,6 +140,8 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
         mNextButton.setOnClickListener(this);
 
         mSecurityTypeView.setAdapter(ConnectionSecurityAdapter.get(this));
+
+        mBtRelayMacButton.setOnClickListener(this);
 
         mAuthTypeAdapter = AuthTypeAdapter.get(this);
         mAuthTypeView.setAdapter(mAuthTypeAdapter);
@@ -466,13 +471,20 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            if (Intent.ACTION_EDIT.equals(getIntent().getAction())) {
-                Preferences.getPreferences(getApplicationContext()).saveAccount(mAccount);
-                finish();
-            } else {
-                AccountSetupOptions.actionOptions(this, mAccount, mMakeDefault);
-                finish();
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 2) {
+            if (resultCode == RESULT_OK) {
+                mBtRelayMacView.setText(data.getStringExtra("address"));
+            }
+        } else {
+            if (resultCode == RESULT_OK) {
+                if (Intent.ACTION_EDIT.equals(getIntent().getAction())) {
+                    Preferences.getPreferences(getApplicationContext()).saveAccount(mAccount);
+                    finish();
+                } else {
+                    AccountSetupOptions.actionOptions(this, mAccount, mMakeDefault);
+                    finish();
+                }
             }
         }
     }
@@ -508,6 +520,9 @@ public class AccountSetupOutgoing extends K9Activity implements OnClickListener,
     public void onClick(View v) {
         if (v.getId() == R.id.next) {
             onNext();
+        } else if (v.getId() == R.id.account_bt_relay_mac_button) {
+            Intent intent = new Intent(this, ChooseBluetoothDeviceActivity.class);
+            startActivityForResult(intent, 2);
         }
     }
 
