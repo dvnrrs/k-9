@@ -2,6 +2,8 @@ package com.fsck.k9.mail.ssl;
 
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -16,6 +18,7 @@ import android.text.TextUtils;
 import com.fsck.k9.mail.MessagingException;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
@@ -145,6 +148,15 @@ public class DefaultTrustedSocketFactory implements TrustedSocketFactory {
         }
     }
 
+    private static void hardenEngine(SSLEngine engine) {
+        if (ENABLED_CIPHERS != null) {
+            engine.setEnabledCipherSuites(ENABLED_CIPHERS);
+        }
+        if (ENABLED_PROTOCOLS != null) {
+            engine.setEnabledProtocols(ENABLED_PROTOCOLS);
+        }
+    }
+
     public static void setSniHost(SSLSocketFactory factory, SSLSocket socket, String hostname) {
         if (factory instanceof android.net.SSLCertificateSocketFactory) {
             SSLCertificateSocketFactory sslCertificateSocketFactory = (SSLCertificateSocketFactory) factory;
@@ -160,5 +172,24 @@ public class DefaultTrustedSocketFactory implements TrustedSocketFactory {
         } catch (Throwable e) {
             Timber.e(e, "Could not call SSLSocket#setHostname(String) method ");
         }
+    }
+
+    public SynchronousSslStreams startTls(InputStream in, OutputStream out, String host, int port, String clientCertificateAlias)
+            throws NoSuchAlgorithmException, MessagingException, KeyManagementException {
+
+        TrustManager[] trustManagers = new TrustManager[] { trustManagerFactory.getTrustManagerForDomain(host, port) };
+        KeyManager[] keyManagers = null;
+        if (!TextUtils.isEmpty(clientCertificateAlias)) {
+            keyManagers = new KeyManager[] { new KeyChainKeyManager(context, clientCertificateAlias) };
+        }
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagers, trustManagers, null);
+        SSLEngine sslEngine = sslContext.createSSLEngine(host, port);
+        sslEngine.setUseClientMode(true);
+
+        hardenEngine(sslEngine);
+
+        return new SynchronousSslStreams(sslEngine, in, out);
     }
 }

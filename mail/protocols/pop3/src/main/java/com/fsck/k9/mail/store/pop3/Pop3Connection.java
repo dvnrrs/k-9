@@ -4,6 +4,7 @@ package com.fsck.k9.mail.store.pop3;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.util.Log;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -17,6 +18,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.List;
@@ -34,8 +36,11 @@ import com.fsck.k9.mail.filter.Base64;
 import com.fsck.k9.mail.filter.Hex;
 import com.fsck.k9.mail.protocols.bluetooth.BluetoothTunnel;
 import com.fsck.k9.mail.protocols.socks.Socks5Client;
+import com.fsck.k9.mail.ssl.SynchronousSslStreams;
 import com.fsck.k9.mail.ssl.TrustedSocketFactory;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
+
 import timber.log.Timber;
 
 import static com.fsck.k9.mail.CertificateValidationException.Reason.MissingCapability;
@@ -80,6 +85,11 @@ class Pop3Connection {
                 socks.connect(settings.getHost(), settings.getPort());
                 in = socks.getInputStream();
                 out = socks.getOutputStream();
+                if (settings.getConnectionSecurity() == ConnectionSecurity.SSL_TLS_REQUIRED) {
+                    SynchronousSslStreams ssl = trustedSocketFactory.startTls(in, out, settings.getHost(), settings.getPort(), settings.getClientCertificateAlias());
+                    in = ssl.getInputStream();
+                    out = ssl.getOutputStream();
+                }
             } else {
                 SocketAddress socketAddress = new InetSocketAddress(settings.getHost(), settings.getPort());
                 if (settings.getConnectionSecurity() == ConnectionSecurity.SSL_TLS_REQUIRED) {
@@ -90,11 +100,11 @@ class Pop3Connection {
                 }
 
                 socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
-                in = new BufferedInputStream(socket.getInputStream(), 1024);
-                out = new BufferedOutputStream(socket.getOutputStream(), 512);
-
                 socket.setSoTimeout(SOCKET_READ_TIMEOUT);
             }
+
+            in = new BufferedInputStream(in, 1024);
+            out = new BufferedOutputStream(out, 512);
 
             if (!isOpen()) {
                 throw new MessagingException("Unable to connect socket");
@@ -119,7 +129,11 @@ class Pop3Connection {
             throw new MessagingException(
                     "Unable to open connection to POP server due to security error.", gse);
         } catch (Exception e) {
-            throw new MessagingException("Unable to open connection to POP server.", e);
+            if (isCause(CertificateException.class, e)) {
+                throw new CertificateValidationException(e.getMessage(), e);
+            } else {
+                throw new MessagingException("Unable to open connection to POP server.", e);
+            }
         }
     }
 
@@ -471,4 +485,9 @@ class Pop3Connection {
     InputStream getInputStream() {
         return in;
     }
+
+    private static boolean isCause(Class<? extends Throwable> expected, Throwable t) {
+        return expected.isInstance(t) || (t != null && isCause(expected, t.getCause()));
+    }
+
 }

@@ -22,10 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
-import java.util.UUID;
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.text.TextUtils;
 
@@ -44,14 +41,15 @@ import com.fsck.k9.mail.Transport;
 import com.fsck.k9.mail.filter.Base64;
 import com.fsck.k9.mail.filter.EOLConvertingOutputStream;
 import com.fsck.k9.mail.filter.LineWrapOutputStream;
-import com.fsck.k9.mail.filter.PeekableInputStream;
 import com.fsck.k9.mail.filter.SmtpDataStuffing;
 import com.fsck.k9.mail.internet.CharsetSupport;
 import com.fsck.k9.mail.oauth.OAuth2TokenProvider;
 import com.fsck.k9.mail.oauth.XOAuth2ChallengeParser;
 import com.fsck.k9.mail.protocols.bluetooth.BluetoothTunnel;
 import com.fsck.k9.mail.protocols.socks.Socks5Client;
+import com.fsck.k9.mail.ssl.SynchronousSslStreams;
 import com.fsck.k9.mail.ssl.TrustedSocketFactory;
+
 import javax.net.ssl.SSLException;
 import org.apache.commons.io.IOUtils;
 import timber.log.Timber;
@@ -127,14 +125,10 @@ public class SmtpTransport extends Transport {
                 for (int i = 0; i < addresses.length; i++) {
                     try {
                         SocketAddress socketAddress = new InetSocketAddress(addresses[i], port);
-                        if (connectionSecurity == ConnectionSecurity.SSL_TLS_REQUIRED) {
-                            socket = trustedSocketFactory.createSocket(null, host, port, clientCertificateAlias);
-                            socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
-                            secureConnection = true;
-                        } else {
-                            socket = new Socket();
-                            socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
-                        }
+                        socket = new Socket();
+                        socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
+                        inputStream = socket.getInputStream();
+                        outputStream = socket.getOutputStream();
                     } catch (SocketException e) {
                         if (i < (addresses.length - 1)) {
                             // there are still other addresses for that host to try
@@ -147,10 +141,17 @@ public class SmtpTransport extends Transport {
 
                 // RFC 1047
                 socket.setSoTimeout(SOCKET_READ_TIMEOUT);
-
-                inputStream = new BufferedInputStream(socket.getInputStream(), 1024);
-                outputStream = new BufferedOutputStream(socket.getOutputStream(), 1024);
             }
+
+            if (connectionSecurity == ConnectionSecurity.SSL_TLS_REQUIRED) {
+                SynchronousSslStreams streams = trustedSocketFactory.startTls(inputStream, outputStream, host, port, clientCertificateAlias);
+                inputStream = streams.getInputStream();
+                outputStream = streams.getOutputStream();
+                secureConnection = true;
+            }
+
+            inputStream = new BufferedInputStream(inputStream, 1024);
+            outputStream = new BufferedOutputStream(outputStream, 1024);
 
             // Eat the banner
             executeCommand(null);
@@ -163,18 +164,14 @@ public class SmtpTransport extends Transport {
             isEnhancedStatusCodesProvided = extensions.containsKey("ENHANCEDSTATUSCODES");
             isPipeliningSupported = extensions.containsKey("PIPELINING");
 
-            if (connectionSecurity == ConnectionSecurity.STARTTLS_REQUIRED && btSocket == null) {
+            if (connectionSecurity == ConnectionSecurity.STARTTLS_REQUIRED) {
                 if (extensions.containsKey("STARTTLS")) {
                     executeCommand("STARTTLS");
 
-                    socket = trustedSocketFactory.createSocket(
-                            socket,
-                            host,
-                            port,
-                            clientCertificateAlias);
+                    SynchronousSslStreams streams = trustedSocketFactory.startTls(inputStream, outputStream, host, port, clientCertificateAlias);
+                    inputStream = streams.getInputStream();
+                    outputStream = streams.getOutputStream();
 
-                    inputStream = new BufferedInputStream(socket.getInputStream(), 1024);
-                    outputStream = new BufferedOutputStream(socket.getOutputStream(), 1024);
                     /*
                      * Now resend the EHLO. Required by RFC2487 Sec. 5.2, and more specifically,
                      * Exim.
