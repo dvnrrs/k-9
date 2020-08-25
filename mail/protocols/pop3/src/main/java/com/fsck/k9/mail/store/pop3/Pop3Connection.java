@@ -101,6 +101,9 @@ class Pop3Connection {
 
                 socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
                 socket.setSoTimeout(SOCKET_READ_TIMEOUT);
+
+                in = socket.getInputStream();
+                out = socket.getOutputStream();
             }
 
             in = new BufferedInputStream(in, 1024);
